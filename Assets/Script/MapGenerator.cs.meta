@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 410b4ff5d2bac1f45aba3b59d0738850
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - upWallPrefab: {fileID: 6279476196039512325, guid: 2a9486930571abb4d9bf1f4cd5fce5d3,
+      type: 3}
+  - rightWallPrefab: {fileID: 4568041062835879471, guid: cd9a61b487024ad44b9de99b9dd3752e,
+      type: 3}
+  - downWallPrefab: {fileID: 5650782384546857969, guid: e48bcf1379d590d4e8978a710ad721e1,
+      type: 3}
+  - leftWallPrefab: {fileID: 6279476196039512325, guid: 2a9486930571abb4d9bf1f4cd5fce5d3,
+      type: 3}
+  - floorPrefab: {fileID: 8769536148498238343, guid: 5bdf99d4c07ee4a4eab22ed92d0c7cbc,
+      type: 3}
+  - defaultWallPrefab: {fileID: 9075496783253328682, guid: 0e349fb0a2a971b45b377ec3eaa169fb,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
