@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.SocialPlatforms;
+using UnityEngine.UI;
 
 public class CameraMover : MonoBehaviour
 {
@@ -39,10 +40,21 @@ public class CameraMover : MonoBehaviour
     private static bool isMoving = false; 
     private static int moveTime = 0;
     private static Vector3 tempPos;
-    private const int MOVE_FRAME = 30;
+    private const int MOVE_FRAME = 15;
     private static float tempTransformX = 0.0f;
     private static float tempTransformY = 0.0f;
     private Direction direction = Direction.Forward;
+    private int posX = 0;
+    private int posY = 0;
+    private GameObject mapGenerator;
+    private MapGenerator mapGeneratorScript;
+    public Text textX;
+    public Text textY;
+    public Text textZ;
+    public Text textPos;
+    public Text textDirection;
+    private GameObject messageUI;
+    private MessageManager messageScript;
 
     enum Direction {
         Forward = 0,
@@ -53,6 +65,12 @@ public class CameraMover : MonoBehaviour
 
     void Start ()
     {
+        mapGenerator = GameObject.Find("MapGenerator");
+        mapGeneratorScript = mapGenerator.GetComponent<MapGenerator>();
+
+        messageUI = GameObject.Find("MessageUI");
+        messageScript = messageUI.GetComponent<MessageManager>();
+
         _camTransform = this.gameObject.transform;
 
         //初期回転の保存
@@ -63,13 +81,25 @@ public class CameraMover : MonoBehaviour
 
         CamControlIsActive(); //カメラ操作の有効無効
 
+        ShowDebug();
+
         if (_cameraMoveActive)
         {
             ResetCameraRotation(); //回転角度のみリセット
-            CameraRotationMouseControl(); //カメラの回転 マウス
-            CameraSlideMouseControl(); //カメラの縦横移動 マウス
             CameraPositionKeyControl(); //カメラのローカル移動 キー
         }
+
+        CheckEventMap();
+    }
+
+    public void ShowDebug()
+    {
+        Vector3 campos = _camTransform.position;
+        textX.text = "x:" + campos.x;
+        textY.text = "y:" + campos.y;
+        textZ.text = "z:" + campos.z;
+        textPos.text = "pos:(" + posX + ":" + posY + ")";
+        textDirection.text = "direction:" + direction;
     }
 
     //カメラ操作の有効無効
@@ -97,55 +127,7 @@ public class CameraMover : MonoBehaviour
         }
     }
 
-    //カメラの回転 マウス
-    private void CameraRotationMouseControl()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            _startMousePos = Input.mousePosition;
-            _presentCamRotation.x = _camTransform.transform.eulerAngles.x;
-            _presentCamRotation.y = _camTransform.transform.eulerAngles.y;
-        }
-
-        if (Input.GetMouseButton(0))
-        {
-            //(移動開始座標 - マウスの現在座標) / 解像度 で正規化
-            float x = (_startMousePos.x - Input.mousePosition.x) / Screen.width;
-            float y = (_startMousePos.y - Input.mousePosition.y) / Screen.height;
-
-            //回転開始角度 ＋ マウスの変化量 * マウス感度
-            float eulerX = _presentCamRotation.x + y * _mouseSensitive;
-            float eulerY = _presentCamRotation.y + x * _mouseSensitive;
-
-            _camTransform.rotation = Quaternion.Euler(eulerX, eulerY, 0);
-        }
-    }
-
-    //カメラの移動 マウス
-    private void CameraSlideMouseControl()
-    {
-        if (Input.GetMouseButtonDown(1))
-        {
-            _startMousePos = Input.mousePosition;
-            _presentCamPos = _camTransform.position;
-        }
-
-        if (Input.GetMouseButton(1))
-        {
-            //(移動開始座標 - マウスの現在座標) / 解像度 で正規化
-            float x = (_startMousePos.x - Input.mousePosition.x) / Screen.width;
-            float y = (_startMousePos.y - Input.mousePosition.y) / Screen.height;
-
-            x = x * _positionStep;
-            y = y * _positionStep;
-
-            Vector3 velocity = _camTransform.rotation * new Vector3(x, y, 0);
-            velocity = velocity + _presentCamPos;
-            _camTransform.position = velocity;
-        }
-    }
-
-    //カメラのローカル移動 キー
+    //カメラ移動
     private void CameraPositionKeyControl()
     {
         if (isMoving) {
@@ -166,23 +148,32 @@ public class CameraMover : MonoBehaviour
             InvokeRepeating("rotateLeft", 0.0f, (1.0f / MOVE_FRAME));
         }
         
-        if (Input.GetKey(KeyCode.W)) { 
-            isMoving = true;
-            switch (direction) {
-                case Direction.Forward:
-                    InvokeRepeating("moveForward", 0.0f, (1.0f / MOVE_FRAME));
-                    break;
-                case Direction.Right:
-                    InvokeRepeating("moveRight", 0.0f, (1.0f / MOVE_FRAME));
-                    break;
-                case Direction.Back:
-                    InvokeRepeating("moveBack", 0.0f, (1.0f / MOVE_FRAME));
-                    break;
-                case Direction.Left:
-                    InvokeRepeating("moveLeft", 0.0f, (1.0f / MOVE_FRAME));
-                    break;
-                default:
-                    break;
+        if (Input.GetKey(KeyCode.W))
+        {
+            if (canMoveForward())
+            {
+                isMoving = true;
+                switch (direction)
+                {
+                    case Direction.Forward:
+                        InvokeRepeating("moveForward", 0.0f, (1.0f / MOVE_FRAME));
+                        break;
+                    case Direction.Right:
+                        InvokeRepeating("moveRight", 0.0f, (1.0f / MOVE_FRAME));
+                        break;
+                    case Direction.Back:
+                        InvokeRepeating("moveBack", 0.0f, (1.0f / MOVE_FRAME));
+                        break;
+                    case Direction.Left:
+                        InvokeRepeating("moveLeft", 0.0f, (1.0f / MOVE_FRAME));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                Debug.Log("いてっ！");
             }
         }
         if (Input.GetKey(KeyCode.S)) { 
@@ -205,7 +196,7 @@ public class CameraMover : MonoBehaviour
             }
         }
 
-        if (Input.GetKey(KeyCode.E)) { campos += _camTransform.up * Time.deltaTime * _positionStep; }
+        if (Input.GetKey(KeyCode.E)) { messageScript.SetMessagePanel("こんにちは"); }
         if (Input.GetKey(KeyCode.Q)) { campos -= _camTransform.up * Time.deltaTime * _positionStep; }
 
         _camTransform.position = campos;
@@ -215,9 +206,7 @@ public class CameraMover : MonoBehaviour
         Vector3 campos = _camTransform.position;
         campos = new Vector3(campos.x + (1.0f / MOVE_FRAME), campos.y, campos.z);
         moveTime++;
-        Debug.Log("ee");
         if (moveTime > MOVE_FRAME) {
-            Debug.Log("ff");
             campos = new Vector3(tempPos.x + 1, campos.y, campos.z);
             isMoving = false;
             moveTime = 0;
@@ -230,10 +219,8 @@ public class CameraMover : MonoBehaviour
         Vector3 campos = _camTransform.position;
         campos = new Vector3(campos.x, campos.y, campos.z - (1.0f / MOVE_FRAME));
         moveTime++;
-        Debug.Log("ee");
         if (moveTime > MOVE_FRAME) {
-            Debug.Log("ff");
-            campos = new Vector3(tempPos.x, campos.y, campos.z - 1);
+            campos = new Vector3(campos.x, campos.y, tempPos.z - 1);
             isMoving = false;
             moveTime = 0;
             CancelInvoke();
@@ -244,10 +231,8 @@ public class CameraMover : MonoBehaviour
         Vector3 campos = _camTransform.position;
         campos = new Vector3(campos.x, campos.y, campos.z + (1.0f / MOVE_FRAME));
         moveTime++;
-        Debug.Log("ee");
         if (moveTime > MOVE_FRAME) {
-            Debug.Log("ff");
-            campos = new Vector3(tempPos.x, campos.y, campos.z + 1);
+            campos = new Vector3(campos.x, campos.y, tempPos.z + 1);
             isMoving = false;
             moveTime = 0;
             CancelInvoke();
@@ -258,9 +243,7 @@ public class CameraMover : MonoBehaviour
         Vector3 campos = _camTransform.position;
         campos = new Vector3(campos.x - (1.0f / MOVE_FRAME), campos.y, campos.z);
         moveTime++;
-        Debug.Log("ee");
         if (moveTime > MOVE_FRAME) {
-            Debug.Log("ff");
             campos = new Vector3(tempPos.x - 1, campos.y, campos.z);
             isMoving = false;
             moveTime = 0;
@@ -272,7 +255,6 @@ public class CameraMover : MonoBehaviour
     private void rotateRight() {
         float eulerX = _camTransform.transform.eulerAngles.x;
         float eulerY = _camTransform.transform.eulerAngles.y + (90.0f / MOVE_FRAME);
-        Debug.Log(tempTransformY);
         if (moveTime < MOVE_FRAME) {
             moveTime++;
 
@@ -350,7 +332,6 @@ public class CameraMover : MonoBehaviour
             _camTransform.rotation = Quaternion.Euler(eulerX, eulerY, 0);
             return;
         }
-        Debug.Log(tempTransformY);
         eulerY = tempTransformY - 90;
             switch (direction)
             {
@@ -378,6 +359,52 @@ public class CameraMover : MonoBehaviour
         isMoving = false;
         moveTime = 0;
         CancelInvoke();
+    }
+
+    private bool canMoveForward()
+    {
+        Debug.Log(posX + ":" + posY);
+        Debug.Log("現在のマス:" + mapGeneratorScript.map[posY][posX]);
+        Debug.Log("現在の向き:" + direction);
+        switch (direction) {
+            case Direction.Forward:
+                if ((mapGeneratorScript.map[posY][posX] & 2) == 2)
+                {
+                    return false;
+                }
+                posX++;
+                return true;
+            case Direction.Right:
+                if ((mapGeneratorScript.map[posY][posX] & 4) == 4)
+                {
+                    return false;
+                }
+                posY++;
+                return true;
+            case Direction.Back:
+                if ((mapGeneratorScript.map[posY][posX] & 8) == 8)
+                {
+                    return false;
+                }
+                posX--;
+                return true;
+            case Direction.Left:
+                if ((mapGeneratorScript.map[posY][posX] & 1) == 1)
+                {
+                    return false;
+                }
+                posY--;
+                return true;
+            default:
+                break;
+        }
+        return false;
+    }
+
+    //現在のマスにイベントが有るかどうか調べ、有るなら実行する
+    private void CheckEventMap()
+    {
+
     }
 
 
